@@ -1,9 +1,10 @@
-import { customElement, html, LitElement, property, TemplateResult } from "lit-element";
+import { customElement, html, LitElement, property, PropertyValues, TemplateResult } from "lit-element";
 import "../divider";
 import { sharedStyles } from "../style/shared";
 import { AriaRole } from "../util/aria";
 import { cssResult } from "../util/css";
 import { addListener, EventListenerSubscription, removeListeners } from "../util/event";
+import { CAN_USE_RESIZE_OBSERVER, onSizeChanged } from "../util/resize";
 
 import styles from "./tab-group.scss";
 
@@ -76,7 +77,7 @@ export class TabGroup extends LitElement implements ITabGroupProperties {
 	 */
 	connectedCallback () {
 		super.connectedCallback();
-		this.listeners.push(addListener(this, "change", this.updateIndicator.bind(this)));
+		this.listeners.push(addListener(this, "change", this.updateIndicatorPosition.bind(this)));
 	}
 
 	/**
@@ -88,13 +89,27 @@ export class TabGroup extends LitElement implements ITabGroupProperties {
 	}
 
 	/**
+	 * Hooks up the element.
+	 * @param props
+	 */
+	protected firstUpdated (props: PropertyValues): void {
+		super.firstUpdated(props);
+
+		// We need to update the indicator position whenever the size of one of the tab changes.
+		// Either attach a resize observer or fallback to listening to window resizes
+		CAN_USE_RESIZE_OBSERVER
+			? onSizeChanged(this.$slot.parentElement!, this.updateIndicatorPosition.bind(this), {debounceMs: 100})
+			: addListener(window, "resize", this.updateIndicatorPosition.bind(this), {passive: true});
+	}
+
+	/**
 	 * Updates the position and size of the indicator.
 	 */
-	protected updateIndicator () {
+	protected updateIndicatorPosition () {
 
 		// Grab the nodes from the slot
-		const nodes = Array.from(this.$slot.assignedNodes()
-		                             .filter(node => node.nodeType === 1)) as any as HTMLElement[];
+		const nodes = (Array.from(this.$slot.assignedNodes()
+		                              .filter(node => node.nodeType === 1)) as any) as HTMLElement[];
 
 		// Find the current checked node
 		let checkedNode: HTMLElement | null = null;
@@ -133,7 +148,7 @@ export class TabGroup extends LitElement implements ITabGroupProperties {
 		return html`
 			<div id="tabs-container">
 				<div id="tabs">
-					<slot @slotchange="${this.updateIndicator}"></slot>
+					<slot @slotchange="${this.updateIndicatorPosition}"></slot>
 					<div id="indicator"></div>
 				</div>
 			</div>
