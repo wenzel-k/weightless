@@ -7,7 +7,11 @@
 import { StyleInfo } from "lit-html/directives/style-map";
 
 export function getWebkitMatrix(computedStyle: CSSStyleDeclaration) {
-	return new WebKitCSSMatrix(<string | number[]>computedStyle.webkitTransform);
+	try {
+		return new WebKitCSSMatrix(<string | number[]>computedStyle.webkitTransform);
+	] catch {
+		return new WebKitCSSMatrix();
+	}
 }
 
 /**
